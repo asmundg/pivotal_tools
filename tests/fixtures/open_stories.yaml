@@ -1,0 +1,36 @@
+- request: !!python/object:vcr.request.Request
+    body: null
+    headers: !!python/object/apply:__builtin__.frozenset
+    - - !!python/tuple [Accept-Encoding, 'gzip, deflate, compress']
+      - !!python/tuple [User-Agent, python-requests/2.2.1 CPython/2.7.5+ Linux/3.11.0-15-generic]
+      - !!python/tuple [Accept, '*/*']
+      - !!python/tuple [X-TrackerToken, !!python/unicode 36df95a9c01924b348f33b58a2899da8]
+    host: www.pivotaltracker.com
+    method: GET
+    path: /services/v5/projects/1009540/stories?fields=:default,owned_by&filter=type%3Afeature%20state%3Aunscheduled%2Cunstarted%2Crejected%2Cstarted%2Cfinished%2Cdelivered%20
+    port: 443
+    protocol: https
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAAA9VVXW+CMBR991cQnqeUCgz5FT7MlxlDKtTYicBKKzHL/vsuhYobuiU4YnzA4D33
+        o73nXO5yZBgf8BiGmZA1TQozMJYjZVg91XZO3yUtBI3D9TFkMTjY2MGujRs8kpzTVISFIIICasIL
+        B3ezwVOyv2TesbTKBd4ZP2rfrExVHQDqU8G5ZEG5zpGzQ5Qw2bgDqIG5AowF+LagLpFTXmRpa+9e
+        AjKxlAlGVAPM+cJUd/9srqACPBfjmT11GpvkSeW6FSIvAssqy3ICp8sESQQn0Y7ySZTtLXU7q9hm
+        paXj9V2hp2xftwzpnHkMhjgkokqNke2MER4j9wWjAPsB8l51cM6zNxqJhg+EZq6jk6iSoTjmqusb
+        SoTkVMdFHP5fq/AcuP6pQkUFh/y1IqpuGJr4Wh7wq/rz3/LZABPFtqufn/YHFZCHbxOQh/sLyG7p
+        HURAfmA79xdQTBN2oLyroA7woBLyvdsk5Hv9JYQHlxBuv3J3+wbJ9MoS6wAXJdTuC9iUN3EF8X25
+        mp0P40Dj7uIr4z7sigAWItgQMunO+AXoL4qmp/Xba6XjKdIUyd/3t/M87P72g7MK32en5WO0+gIa
+        eTCY9AkAAA==
+    headers: ["Content-Type: application/json; charset=utf-8\r\n", "Transfer-Encoding:
+        chunked\r\n", "Status: 200\r\n", "X-Powered-By: Phusion Passenger (mod_rails/mod_rack)
+        3.0.14\r\n", "Cache-Control: private, max-age=0, must-revalidate\r\n", "X-Runtime:
+        582\r\n", "X-Tracker-Pagination-Limit: 100\r\n", "X-Tracker-Pagination-Total:
+        5\r\n", "ETag: \"7cc08aa061f5eb4464790876e1a3e990\"\r\n", "X-Tracker-Pagination-Returned:
+        5\r\n", "X-Tracker-Pagination-Offset: 0\r\n", "X-Tracker-Project-Version:
+        19\r\n", "Server: nginx/1.2.2 + Phusion Passenger 3.0.14 (mod_rails/mod_rack)\r\n",
+      "Access-Control-Allow-Origin: *\r\n", "Access-Control-Allow-Credentials: false\r\n",
+      "Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS\r\n", "Access-Control-Allow-Headers:
+        X-TrackerToken,DNT,X-Mx-ReqToken,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,X-Tracker-Warn-Unless-Project-Version-Is\r\n",
+      "Content-Encoding: gzip\r\n"]
+    status: {code: 200, message: OK}

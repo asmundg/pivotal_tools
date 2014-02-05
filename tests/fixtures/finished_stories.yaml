@@ -1,0 +1,33 @@
+- request: !!python/object:vcr.request.Request
+    body: null
+    headers: !!python/object/apply:__builtin__.frozenset
+    - - !!python/tuple [Accept-Encoding, 'gzip, deflate, compress']
+      - !!python/tuple [User-Agent, python-requests/2.2.1 CPython/2.7.5+ Linux/3.11.0-15-generic]
+      - !!python/tuple [Accept, '*/*']
+      - !!python/tuple [X-TrackerToken, !!python/unicode 36df95a9c01924b348f33b58a2899da8]
+    host: www.pivotaltracker.com
+    method: GET
+    path: /services/v5/projects/1009540/stories?fields=:default,owned_by&filter=type%3Afeature%20state%3Aaccepted%20includedone%3Atrue
+    port: 443
+    protocol: https
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAAA41SQW7CMBC88wrL50IclyDIKziUSxGKjLMVhhC79qYRqvh7N05cDq2qHpLDzOzs
+        7K73M8Y+6WOMN+oITeAl288icHgacQ/vHQSEujreKlOTIJdLWeRy4nXnPbRYBVQIxHKlNTjS80nQ
+        quuv+MW0gxsPaP0tiW3fxk5EjLkoWRfAJxNnPnRjuklOZCK2kWA70j7I1MKBD7Z94D/HICfTGjQq
+        roBvdzxOf59miAWrQspNvllNWOebQXpCdKHMsr7vF5TOomrQK30Bv9D2msXpsnCyfZbq06y0VXMd
+        lyaSp6sJqCuFg7UU+XIu5FwUL1KUcl0+r19TsfP2DBqniwixKZbJJLas8Obi2t9AYech1aXr/KOF
+        9lT6Rxj5HWa4mqco4/MZFsfSKxnfEv3vs8MX0yvygm4CAAA=
+    headers: ["Content-Type: application/json; charset=utf-8\r\n", "Transfer-Encoding:
+        chunked\r\n", "Status: 200\r\n", "X-Powered-By: Phusion Passenger (mod_rails/mod_rack)
+        3.0.14\r\n", "Cache-Control: private, max-age=0, must-revalidate\r\n", "X-Runtime:
+        90\r\n", "X-Tracker-Pagination-Limit: 100\r\n", "X-Tracker-Pagination-Total:
+        1\r\n", "ETag: \"5caed293f490249c62ab10e259a37c44\"\r\n", "X-Tracker-Pagination-Returned:
+        1\r\n", "X-Tracker-Pagination-Offset: 0\r\n", "X-Tracker-Project-Version:
+        35\r\n", "Server: nginx/1.2.2 + Phusion Passenger 3.0.14 (mod_rails/mod_rack)\r\n",
+      "Access-Control-Allow-Origin: *\r\n", "Access-Control-Allow-Credentials: false\r\n",
+      "Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS\r\n", "Access-Control-Allow-Headers:
+        X-TrackerToken,DNT,X-Mx-ReqToken,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,X-Tracker-Warn-Unless-Project-Version-Is\r\n",
+      "Content-Encoding: gzip\r\n"]
+    status: {code: 200, message: OK}

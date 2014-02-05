@@ -1,20 +1,24 @@
 from __future__ import unicode_literals
-from datetime import datetime
 
 import factory
 
 from pivotal_tools import cli
 
 
-class StoryFactory(factory.StubFactory):
-    story_id = '42'
+class UserFactory(factory.DictFactory):
+    name = 'Some P\xf8rson'
+    initials = 'SP'
+
+
+class StoryFactory(factory.DictFactory):
+    id = '42'
     project_id = '43'
     name = 'F\xf8\xf8'
     description = 'F\xf8\xf8 is a thing'
-    owned_by = 'Some P\xf8rson'
+    owned_by = factory.SubFactory(UserFactory)
     story_type = 'bug'
     estimate = 1
-    state = 'started'
+    current_state = 'started'
     url = 'http://example.com'
     labels = None
 

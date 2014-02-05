@@ -60,6 +60,7 @@ Options:
 
 #Core Imports
 from __future__ import unicode_literals
+import logging
 import os
 import sys
 import webbrowser
@@ -70,13 +71,10 @@ from itertools import islice
 from docopt import docopt
 from termcolor import colored
 
-from pivotal_tools.pivotal import Project, Story, InvalidStateException
+from pivotal_tools import pivotal
 
 
 ## Main Methods
-
-
-
 def generate_changelog(project):
     """Generate a Changelog for the current project.  It is grouped into 3 sections:
     * New Features
@@ -86,7 +84,7 @@ def generate_changelog(project):
     The new features section is grouped by label for easy comprehension
     """
 
-    title_string = 'Change Log {}'.format(project.name)
+    title_string = 'Change Log {}'.format(project['name'])
 
     print('')
     print(bold(title_string))
@@ -96,7 +94,7 @@ def generate_changelog(project):
     print(bold('New Features'))
     print(bold('============'))
 
-    finished_features = project.finished_features()
+    finished_features = pivotal.finished_features(project)
     features_by_label = group_stories_by_label(finished_features)
 
     for label in features_by_label:
@@ -107,18 +105,19 @@ def generate_changelog(project):
         print(bold(display_label.title()))
         for story in features_by_label[label]:
             print('    * {:14s} {}'.format('[{}]'.format(
-                story.story_id), story.name))
+                story['id']), story['name']))
 
     def print_stories(stories):
         if len(stories) > 0:
             for story in stories:
                 story_string = ""
-                if story.labels is not None and len(story.labels) > 0:
-                    story_string += "[{}] ".format(story.labels)
+                if story['labels']:
+                    story_string += "[{}] ".format(
+                        ', '.join([label['name'] for label in story['labels']]))
 
-                story_string += story.name
+                story_string += story['name']
                 print('* {:14s} {}'.format(
-                    '[{}]'.format(story.story_id), story_string))
+                    '[{}]'.format(story['id']), story_string))
         else:
             print('None')
             print('')
@@ -126,12 +125,12 @@ def generate_changelog(project):
     print('')
     print(bold('Bugs Fixed'))
     print(bold('=========='))
-    print_stories(project.finished_bugs())
+    print_stories(pivotal.finished_bugs(project))
 
     print('')
     print(bold('Known Issues'))
     print(bold('=========='))
-    print_stories(project.known_issues())
+    print_stories(pivotal.known_issues(project))
 
     print('')
 
@@ -159,60 +158,63 @@ def show_stories(stories, arguments):
     else:
         for story in islice(stories, number_of_stories):
             lines.append('{:14s}{:4s}{:9s}{:13s}{:10s} {}'.format(
-                '#{}'.format(story.story_id),
-                initials(story.owned_by),
-                story.story_type,
-                story.state,
-                estimate_visual(story.estimate),
-                story.name))
+                '#{}'.format(story['id']),
+                story.get('owned_by', {}).get('initials', ''),
+                story['story_type'],
+                story['current_state'],
+                estimate_visual(story.get('estimate')),
+                story['name']))
 
     return lines
 
 
-def show_story(story_id, arguments):
+def show_story(story):
     """Shows the Details for a single story
 
     Will find the associate project,
     then look up the story and print of the details
     """
+    lines = []
+    lines.append(colored('{:12s}{:4s}{:9s}{:10s} {}'.format(
+        '#{}'.format(story['id']),
+        ','.join([owner['initials'] for owner in story['owners']]),
+        story['story_type'],
+        estimate_visual(story.get('estimate')),
+        story['name']), 'white', attrs=['bold']))
+    lines.append('')
+    lines.append(colored("Story Url: ", 'white', attrs=['bold'])
+                 + colored(story['url'], 'blue', attrs=['underline']))
+    lines.append(colored("Description: ", 'white', attrs=['bold'])
+                 + story.get('description', ''))
 
-    story = load_story(story_id, arguments)
+    if story['comments']:
+        lines.append('')
+        lines.append(bold("Comments:"))
+        for comment in story['comments']:
+            lines.append(
+                "[{}] {}".format(
+                    comment['person']['initials'], comment['text']))
 
-    print('')
-    print(colored('{:12s}{:4s}{:9s}{:10s} {}'.format(
-        '#{}'.format(story.story_id),
-        initials(story.owned_by),
-        story.story_type,
-        estimate_visual(story.estimate),
-        story.name), 'white', attrs=['bold']))
-    print('')
-    print(colored("Story Url: ", 'white', attrs=['bold'])
-          + colored(story.url, 'blue', attrs=['underline']))
-    print(colored("Description: ", 'white', attrs=['bold'])
-          + story.description)
+    if story['tasks']:
+        lines.append('')
+        lines.append(bold("Tasks:"))
+        for task in story['tasks']:
+            lines.append("[{}] {}".format(
+                x_or_space(task['complete']), task['description']))
 
-    if len(story.notes) > 0:
-        print('')
-        print(bold("Notes:"))
-        for note in story.notes:
-            print("[{}] {}".format(initials(note.author), note.text))
+    #########################################################################
+    # if attachments:                                                       #
+    #     lines.append('')                                                  #
+    #     lines.append(bold("Attachments:"))                                #
+    #     for attachment in attachments:                                    #
+    #         print(attachment)                                             #
+    #         lines.append("{} {}".format(                                  #
+    #             attachment['description'],                                #
+    #             colored(attachment['url'], 'blue', attrs=['underline']))) #
+    #########################################################################
 
-    if len(story.tasks) > 0:
-        print('')
-        print(bold("Tasks:"))
-        for task in story.tasks:
-            print("[{}] {}".format(
-                x_or_space(task.complete), task.description))
-
-    if len(story.attachments) > 0:
-        print('')
-        print(bold("Attachments:"))
-        for attachment in story.attachments:
-            print("{} {}".format(
-                attachment.description,
-                colored(attachment.url, 'blue', attrs=['underline'])))
-
-    print('')
+    lines.append('')
+    return lines
 
 
 def scrum(project_name, stories, bugs):
@@ -228,13 +230,13 @@ def scrum(project_name, stories, bugs):
     for owner in stories_by_owner:
         lines.append(bold(owner))
         for story in stories_by_owner[owner]:
-            name = story.name
-            if story.state in ['finished', 'delivered']:
-                name = '{}: {}'.format(bold(story.state), name)
+            name = story['name']
+            if story['current_state'] in ['finished', 'delivered']:
+                name = '{}: {}'.format(bold(story['current_state']), name)
             lines.append("   #{:12s}{:9s} {:7s} {}".format(
-                story.story_id,
-                estimate_visual(story.estimate),
-                story.story_type,
+                str(story['id']),
+                estimate_visual(story.get('estimate')),
+                story['story_type'],
                 name))
 
         lines.append('')
@@ -243,9 +245,10 @@ def scrum(project_name, stories, bugs):
     if len(bugs) == 0:
         lines.append('Not sure that I believe it, but there are no bugs')
     for bug in bugs:
-        lines.append("   #{:12s} {:4s} {}".format(bug.story_id,
-                                                  initials(bug.owned_by),
-                                                  bug.name))
+        lines.append("   #{:12s} {:4s} {}".format(
+            str(bug['id']),
+            bug.get('owned_by', {}).get('initials', ''),
+            bug['name']))
     return lines
 
 
@@ -269,14 +272,14 @@ def poker(project):
         print("KaBoom!!! Nice Work Team")
 
 
-def load_story(story_id, arguments):
+def load_story(story_id, api_token, arguments):
     story = None
     if arguments['--project-index'] is not None and arguments['--project-index'].isdigit():
         idx = int(arguments['--project-index']) - 1
-        story = Story.find(story_id, project_index=idx)
+        story = pivotal.find_story(story_id, api_token, project_index=idx)
     else:
 
-        story = Story.find(story_id)
+        story = pivotal.find_story(story_id, api_token)
     return story
 
 
@@ -286,6 +289,7 @@ def browser_open(story_id, arguments):
     story = load_story(story_id, arguments)
 
     webbrowser.open(story.url)
+
 
 def create_story(project, arguments):
 
@@ -337,7 +341,7 @@ def update_status(arguments):
                 print("Story: [{}] {} is REJECTED".format(
                     story.story_id, story.name))
 
-        except InvalidStateException as e:
+        except Exception as e:
             print(e.message)
     else:
         print("hmmm could not find story")
@@ -352,9 +356,9 @@ def bold(string):
     return colored(string, 'white', attrs=['bold'])
 
 
-def prompt_project(arguments):
+def prompt_project(arguments, token):
     """prompts the user for a project, if not passed in as a argument"""
-    projects = Project.all()
+    projects = pivotal.projects(token)
 
     # Do not prompt -- and auto select the one project if a account only has one project
     if len(projects) == 1:
@@ -372,7 +376,7 @@ def prompt_project(arguments):
     while True:
         print("Select a Project:")
         for idx, project in enumerate(projects):
-            print("[{}] {}".format(idx+1, project.name))
+            print("[{}] {}".format(idx+1, project['name']))
         s = raw_input('>> ')
 
         try:
@@ -402,15 +406,7 @@ def check_api_token():
         and scroll to the bottom. You'll find it there.
         """)
         exit()
-
-
-def initials(full_name):
-    """Return the initials of a passed in name"""
-
-    if full_name is not None and len(full_name) > 0:
-        return ''.join([s[0] for s in full_name.split(' ')]).upper()
-    else:
-        return ''
+    return token
 
 
 def estimate_visual(estimate):
@@ -423,11 +419,11 @@ def estimate_visual(estimate):
 def group_stories_by_owner(stories):
     stories_by_owner = {}
     for story in stories:
-        if story.owned_by is not None:
-            if story.owned_by in stories_by_owner:
-                stories_by_owner[story.owned_by].append(story)
+        if story.get('owned_by', None) is not None:
+            if story['owned_by']['name'] in stories_by_owner:
+                stories_by_owner[story['owned_by']['name']].append(story)
             else:
-                stories_by_owner[story.owned_by] = [story]
+                stories_by_owner[story['owned_by']['name']] = [story]
         else:
             continue
     return stories_by_owner
@@ -436,10 +432,11 @@ def group_stories_by_owner(stories):
 def group_stories_by_label(stories):
     stories_by_label = {}
     for story in stories:
-        if story.first_label in stories_by_label:
-            stories_by_label[story.first_label].append(story)
+        first_label = pivotal.story_first_label(story)
+        if first_label in stories_by_label:
+            stories_by_label[first_label].append(story)
         else:
-            stories_by_label[story.first_label] = [story]
+            stories_by_label[first_label] = [story]
 
     return stories_by_label
 
@@ -532,6 +529,10 @@ def decode_dict(items, encoding):
 
 
 def main():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(name)s %(levelname)s %(message)s")
+
     input_encoding = 'utf-8'
     if sys.stdin.encoding is not None:
         input_encoding = sys.stdin.encoding
@@ -540,28 +541,29 @@ def main():
         output_encoding = sys.stdout.encoding
 
     arguments = decode_dict(docopt(__doc__), input_encoding)
-    check_api_token()
+    token = check_api_token()
 
     lines = None
     if arguments['changelog']:
-        project = prompt_project(arguments)
+        project = prompt_project(arguments, token)
         generate_changelog(project)
     elif arguments['show'] and arguments['stories']:
-        project = prompt_project(arguments)
-        lines = show_stories(project.open_stories(arguments.get('--for')),
-                             arguments)
+        project = prompt_project(arguments, token)
+        lines = show_stories(
+            pivotal.Project(project['id'], token)
+            .open_stories(arguments.get('--for')), arguments)
     elif arguments['show'] and arguments['story']:
-        show_story(arguments['<story_id>'], arguments)
+        story = load_story(arguments['<story_id>'], token, arguments)
+        lines = show_story(story)
     elif arguments['open']:
         browser_open(arguments['<story_id>'], arguments)
     elif arguments['scrum']:
-        project = prompt_project(arguments)
+        project = prompt_project(arguments, token)
+        _project = pivotal.Project(project['id'], token)
         lines = scrum(
-            project.name,
-            project.in_progress_stories(
-                arguments.get('--show-finished', False),
-                arguments.get('--show-delivered', False)),
-            project.open_bugs())
+            project['name'],
+            _project.in_progress_stories(),
+            _project.open_bugs())
     elif arguments['poker'] or arguments['planning']:
         project = prompt_project(arguments)
         poker(project)
