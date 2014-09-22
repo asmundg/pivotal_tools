@@ -197,7 +197,7 @@ class Project(object):
         projects_url = 'https://www.pivotaltracker.com/services/v3/projects'
         response = _perform_pivotal_get(projects_url)
 
-        root = ET.fromstring(response.text)
+        root = ET.fromstring(response.content)
         if root is not None:
             return [Project.from_node(project_node) for project_node in root]
 
@@ -206,7 +206,7 @@ class Project(object):
         url = "https://www.pivotaltracker.com/services/v3/projects/%s" % project_id
         response = _perform_pivotal_get(url)
 
-        project_node = ET.fromstring(response.text)
+        project_node = ET.fromstring(response.content)
         name = _parse_text(project_node, 'name')
         return Project(project_id, name)
 
@@ -218,7 +218,7 @@ class Project(object):
         story_filter = quote(filter_string.encode('utf-8'), safe=b'')
         stories_url = "https://www.pivotaltracker.com/services/v3/projects/{}/stories?filter={}".format(self.project_id, story_filter)
         response = _perform_pivotal_get(stories_url)
-        stories_root = ET.fromstring(response.text)
+        stories_root = ET.fromstring(response.content)
 
         return [Story.from_node(story_node) for story_node in stories_root]
 
@@ -226,14 +226,14 @@ class Project(object):
         """Trys to find a story, returns None is not found"""
         story_url = "https://www.pivotaltracker.com/services/v3/projects/{}/stories/{}".format(self.project_id, story_id)
 
-        resposne = _perform_pivotal_get(story_url)
-        # print(resposne.text)
-        if resposne.status_code == 404:
+        response = _perform_pivotal_get(story_url)
+        # print(response.content)
+        if response.status_code == 404:
             # Not Found
             return None
         else:
             #Found, parsing story
-            root = ET.fromstring(resposne.text)
+            root = ET.fromstring(response.content)
             return Story.from_node(root)
 
     def create_story(self,story_dict):
