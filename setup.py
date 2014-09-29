@@ -9,10 +9,9 @@ setup(name='pivotal_tools',
       license='MIT',
       packages=['pivotal_tools'],
       install_requires=[
-          'requests',
+          'grequests',
           'docopt',
-          'termcolor',
-          'dicttoxml'
+          'termcolor'
       ],
       entry_points={
           'console_scripts': ['pivotal_tools = pivotal_tools:main']

@@ -278,7 +278,6 @@ def load_story(story_id, api_token, arguments):
         idx = int(arguments['--project-index']) - 1
         story = pivotal.find_story(story_id, api_token, project_index=idx)
     else:
-
         story = pivotal.find_story(story_id, api_token)
     return story
 
@@ -419,13 +418,9 @@ def estimate_visual(estimate):
 def group_stories_by_owner(stories):
     stories_by_owner = {}
     for story in stories:
-        if story.get('owned_by', None) is not None:
-            if story['owned_by']['name'] in stories_by_owner:
-                stories_by_owner[story['owned_by']['name']].append(story)
-            else:
-                stories_by_owner[story['owned_by']['name']] = [story]
-        else:
-            continue
+        owners = ', '.join(
+            [owner['name'] for owner in story.get('owners', [])])
+        stories_by_owner.setdefault(owners, []).append(story)
     return stories_by_owner
 
 

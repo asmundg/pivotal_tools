@@ -8,7 +8,7 @@ except ImportError:
     from urllib import quote
 
 # 3rd Party Imports
-import requests
+import grequests
 import dicttoxml
 
 
@@ -100,15 +100,18 @@ class Project(object):
             '&filter={}'.format(
                 self.pid, story_filter), self.api_token)
         # Owners does not get expanded properly by the API
-        for story in stories:
-            if story['owner_ids'] and not story['owners']:
-                story['owners'] = self.story_owners(story)
+        need_owners = [story for story in stories
+                       if story['owner_ids'] and not story['owners']]
+        self.update_story_owners(need_owners)
         return stories
 
-    def story_owners(self, story):
-        return _perform_pivotal_get(
-            '/projects/{}/stories/{}/owners'.format(self.pid, story['id']),
+    def update_story_owners(self, stories):
+        owners = perform_parallel_pivotal_get(
+            ['/projects/{}/stories/{}/owners'.format(self.pid, story['id'])
+             for story in stories],
             self.api_token)
+        for story, owners in zip(stories, owners):
+            story['owners'] = owners
 
     def open_stories(self, owner=None):
         return self.stories(self.filter_open(), self.filter_owner(owner))
@@ -148,19 +151,33 @@ class Project(object):
             return ''
 
 
-# TODO Handle requests.exceptions.ConnectionError
+def perform_parallel_pivotal_get(urls, token):
+    response = (
+        [json.loads(response.text) for response in grequests.map(
+            [request for request in [
+                _perform_pivotal_get(url, token, parallel=True)
+                for url in urls]])])
+    logging.debug(response)
+    return response
 
-def _perform_pivotal_get(url, token):
+
+# TODO Handle requests.exceptions.ConnectionError
+def _perform_pivotal_get(url, token, parallel=False):
+    logging.info(url)
     headers = {'X-TrackerToken': token}
-    response = requests.get(
+    request = grequests.get(
         'https://www.pivotaltracker.com/services/v5' + url, headers=headers)
-    logging.debug(response.text)
-    return json.loads(response.text)
+    if parallel:
+        return request
+    else:
+        response = grequests.map([request])[0]
+        logging.debug(response.text)
+        return json.loads(response.text)
 
 
 def _perform_pivotal_put(url):
     headers = {'X-TrackerToken': TOKEN, 'Content-Length': 0}
-    response = requests.put(
+    response = grequests.put(
         'https://www.pivotaltracker.com/services/v5' + url,
         headers=headers)
     response.raise_for_status()
@@ -168,7 +185,7 @@ def _perform_pivotal_put(url):
 
 def _perform_pivotal_post(url,payload_xml):
     headers = {'X-TrackerToken': TOKEN, 'Content-type': "application/xml"}
-    response = requests.post(
+    response = grequests.post(
         'https://www.pivotaltracker.com/services/v5' + url,
         data=payload_xml, headers=headers)
     response.raise_for_status()
