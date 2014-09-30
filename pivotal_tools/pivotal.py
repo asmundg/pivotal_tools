@@ -1,6 +1,5 @@
 # Core Imports
 from __future__ import unicode_literals
-import json
 import logging
 try:
     from urllib.parse import quote as quote
@@ -9,7 +8,6 @@ except ImportError:
 
 # 3rd Party Imports
 import grequests
-import dicttoxml
 
 
 def find_project_for_story(story_id, token):
@@ -153,7 +151,7 @@ class Project(object):
 
 def perform_parallel_pivotal_get(urls, token):
     response = (
-        [json.loads(response.text) for response in grequests.map(
+        [response.json() for response in grequests.map(
             [request for request in [
                 _perform_pivotal_get(url, token, parallel=True)
                 for url in urls]])])
@@ -172,7 +170,7 @@ def _perform_pivotal_get(url, token, parallel=False):
     else:
         response = grequests.map([request])[0]
         logging.debug(response.text)
-        return json.loads(response.text)
+        return response.json()
 
 
 def _perform_pivotal_put(url):
